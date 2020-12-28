@@ -2,33 +2,28 @@ from selenium import webdriver
 import requests
 from bs4 import BeautifulSoup
 from hurry.filesize import size
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as wait
 from selenium.webdriver.support import expected_conditions as EC
 from time import sleep
 
 '''
-anime_site_url = 'http://www.chia-anime.me/'
+Supported Anime Sites.
+chia_anime_url = 'http://www.chia-anime.me/'
 '''
-
-# VAR: anime_page_url
-arg_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
-                     '-tensei' \
-                     '-shite-shison-tachi-no-gakkou-e/ '
 
 
 # noinspection SpellCheckingInspection
-class AnimeSpider:
+class ChiaAnimeSpider:
     """
     Class for extracting and downloading anime episodes.
     """
 
-    def __init__(self, anime_page_url):
+    def __init__(self, chia_anime_page_url):
         """
         Prepares the object for crawling.
-        :param anime_page_url: pass the anime page url of chia anime.
+        :param chia_anime_page_url: pass the anime page url of chia anime.
         """
-        self.anime_page_url = anime_page_url
+        self.anime_page_url = chia_anime_page_url
 
     def xtract_all_episodes_subpage_links(self):
         """
@@ -127,19 +122,20 @@ def xtract_player_selenium(player_cdn_link, anim_webdriver):
     return vid_dwn_link
 
 
-testSpider = AnimeSpider(arg_anime_page_url)
+# TODO: VAR: anime_page_url
+arg_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
+                     '-tensei' \
+                     '-shite-shison-tachi-no-gakkou-e/ '
+
+testSpider = ChiaAnimeSpider(arg_anime_page_url)
 
 subpage_links = testSpider.xtract_all_episodes_subpage_links()
+
+# TODO: VAR: start and end for subpage_links to slice the list
 vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
 
 # Initialize the webDriver
 driver = webdriver.Edge('msedgedriver.exe')
 
-# TODO: Test code
+# TODO: REMOVE: Test code
 xtract_player_selenium(vid_cdn_links[8], driver)
-
-# Approaches to skip the ad and play the video
-# Try implicit waits in selenium
-# Try to wait for 'src' attribute in target element to appear
-# Try polling
-# Try to wait for ad to skip automatically and start the video (RISKY)
