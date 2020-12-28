@@ -2,6 +2,7 @@ from selenium import webdriver
 import requests
 from bs4 import BeautifulSoup
 from hurry.filesize import size
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as wait
 from selenium.webdriver.support import expected_conditions as EC
 from time import sleep
@@ -24,6 +25,9 @@ class ChiaAnimeSpider:
         :param chia_anime_page_url: pass the anime page url of chia anime.
         """
         self.anime_page_url = chia_anime_page_url
+        # Initialize the webDriver
+        # TODO: make it headless
+        self.driver = webdriver.Edge('msedgedriver.exe')
 
     def xtract_all_episodes_subpage_links(self):
         """
@@ -78,7 +82,14 @@ class ChiaAnimeSpider:
         :param epi_cdn_links: pass the list of cdn_links extracted from the xtract_video_link()
         :return: returns the list of direct download video links
         """
-        pass
+        direct_dwnload_links = []
+
+        for episode in epi_cdn_links:
+            direct_dwnload_links.append(xtract_player_selenium(episode, self.driver))
+
+        # Close the browser after extracting all the direct dwn links.
+        self.driver.quit()
+        return direct_dwnload_links
 
 
 def xtract_player_selenium(player_cdn_link, anim_webdriver):
@@ -105,7 +116,11 @@ def xtract_player_selenium(player_cdn_link, anim_webdriver):
 
         print("Switched to ad iframe ...")
         # Find the ad skip button
-        anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
+        # TODO: IMP: Use webdriver wait and EC to find and locate the element
+        wait(anim_webdriver, 10).until(EC.element_to_be_clickable(
+            (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
+
+        # anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
         print('Ad Skipped!')
 
     except Exception as e:
@@ -133,9 +148,6 @@ subpage_links = testSpider.xtract_all_episodes_subpage_links()
 
 # TODO: VAR: start and end for subpage_links to slice the list
 vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
-
-# Initialize the webDriver
-driver = webdriver.Edge('msedgedriver.exe')
-
-# TODO: REMOVE: Test code
-xtract_player_selenium(vid_cdn_links[8], driver)
+dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
+# TODO: use dicts instead of list, helpful to rename the download file.
+print(dwn_links)
