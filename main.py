@@ -2,11 +2,13 @@ from selenium import webdriver
 import requests
 from bs4 import BeautifulSoup
 from hurry.filesize import size
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as wait
 from selenium.webdriver.support import expected_conditions as EC
 from time import sleep, perf_counter
 import re
+from webdrivermanager import ChromeDriverManager
 
 '''
 Supported Anime Sites.
@@ -14,14 +16,8 @@ chia_anime_url = 'http://www.chia-anime.me/'
 '''
 
 
-def find_epi_num_in_title(page_title):
-    """
-    Helper function to extract the episode number from the page title using regex and returns epi_number
-    :param page_title: page title of the anime video player
-    :return: string with epi_number
-    """
-    epi_number_regex = re.compile('Episode ([0-9]+)')
-    return epi_number_regex.findall(page_title)[0]
+# ChromeDriverManager().download_and_install()
+# TODO: make this user chooseable option after updating chrome.
 
 
 # TODO: REMOVE perf_counter in production.
@@ -38,9 +34,21 @@ class ChiaAnimeSpider:
         :param chia_anime_page_url: pass the anime page url of chia anime.
         """
         self.anime_page_url = chia_anime_page_url
-        # Initialize the webDriver
-        # TODO: make it headless
-        self.driver = webdriver.Edge('msedgedriver.exe')
+        # Initialize the  headless webDriver
+        options = Options()
+        options.add_extension('ublock.crx')
+
+        self.driver = webdriver.Chrome(options=options)
+
+    @staticmethod
+    def find_epi_num_in_title(page_title):
+        """
+        Helper function to extract the episode number from the page title using regex and returns epi_number
+        :param page_title: page title of the anime video player
+        :return: string with epi_number
+        """
+        epi_number_regex = re.compile('Episode ([0-9]+)')
+        return epi_number_regex.findall(page_title)[0]
 
     def xtract_all_episodes_subpage_links(self):
         """
@@ -68,7 +76,8 @@ class ChiaAnimeSpider:
 
         return sub_page_links
 
-    def xtract_video_links(self, epi_subpage_links):
+    @staticmethod
+    def xtract_video_links(epi_subpage_links):
         """
         Extracts cdn links from the list slice of subpage links.
         :param epi_subpage_links: slice of list of episode page links.
@@ -121,39 +130,41 @@ def xtract_player_selenium(player_cdn_link, anim_webdriver):
     # Play the player
     anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
                                          '2]/div[1]').click()
-
-    try:
-        sleep(5)
-        # Switch to ad iframe
-        wait(anim_webdriver, 10).until(
-            EC.frame_to_be_available_and_switch_to_it(anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div['
-                                                                                           '1]/div[2]/iframe[1]')))
-
-        print("DEBUG: Switched to ad iframe ...")
-        # Find the ad skip button
-        # TODO: IMP: Use webdriver wait and EC to find and locate the element
-        wait(anim_webdriver, 10).until(EC.element_to_be_clickable(
-            (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
-
-        # anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
-        print('DEBUG: Ad Skipped!')
-
-    except Exception as e:
-        # TODO: In production if failed to retrieve a episode link then just return "Try again" message and proceed
-        #  with collected links.
-        print(e)
-        print("Failed to Skip Ad, possible errors: Can't find the target element or Timeout Exception")
-        # TODO: refactor ad skipper and handle for situation when ads are not skipped.
-        # anim_webdriver.close()
-    else:
-        # Switch back to content
-        anim_webdriver.switch_to.default_content()
-        print('DEBUG: Switched to default content ...')
-        anim_webdriver.delete_all_cookies()
-        print('All cookies deleted ...')
+    # Ad skipper
+    # try:
+    #     sleep(5)
+    #     # Switch to ad iframe
+    #     wait(anim_webdriver, 10).until(
+    #         EC.frame_to_be_available_and_switch_to_it(anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div['
+    #                                                                                        '1]/div[2]/iframe[1]')))
+    #
+    #     print("DEBUG: Switched to ad iframe ...")
+    #     # Find the ad skip button
+    #     # TODO: IMP: Use webdriver wait and EC to find and locate the element
+    #     wait(anim_webdriver, 10).until(EC.element_to_be_clickable(
+    #         (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
+    #
+    #     # anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
+    #     print('DEBUG: Ad Skipped!')
+    #
+    # except Exception as e:
+    #     # TODO: In production if failed to retrieve a episode link then just return "Try again" message and proceed
+    #     #  with collected links.
+    #     print(e)
+    #     print("Failed to Skip Ad, possible errors: Can't find the target element or Timeout Exception")
+    #     # TODO: refactor ad skipper and handle for situation when ads are not skipped.
+    #     # anim_webdriver.close()
+    # else:
+    #     # Switch back to content
+    #     anim_webdriver.switch_to.default_content()
+    #     print('DEBUG: Switched to default content ...')
+    #     anim_webdriver.delete_all_cookies()
+    #     print('All cookies deleted ...')
 
     vid_dwn_element = anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
     vid_dwn_link = vid_dwn_element.get_attribute('src')
+
+    print('Clearing cookies ...')
 
     print(f'Done {anim_webdriver.title}')
     return vid_dwn_link
