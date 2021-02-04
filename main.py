@@ -34,10 +34,8 @@ class ChiaAnimeSpider:
         :param chia_anime_page_url: pass the anime page url of chia anime.
         """
         self.anime_page_url = chia_anime_page_url
-        # Initialize the  headless webDriver
         options = Options()
         options.add_extension('ublock.crx')
-
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
@@ -107,67 +105,65 @@ class ChiaAnimeSpider:
         direct_dwnload_links = []
 
         for episode in epi_cdn_links:
-            direct_dwnload_links.append(xtract_player_selenium(episode, self.driver))
+            direct_dwnload_links.append(self.xtract_player_selenium(episode, self.driver))
 
         # Close the browser after extracting all the direct dwn links.
         self.driver.quit()
         return direct_dwnload_links
 
+    @staticmethod
+    def xtract_player_selenium(player_cdn_link, anim_webdriver):
+        """
+        returns a direct download video from a given cdn link
+        :param player_cdn_link: single cdn link.
+        :param anim_webdriver: expects a webDriver for selenium
+        :return: single direct download link.
+        """
+        # Extract this element 'src' after clicking on the video player
+        # //body/div[1]/div[1]/div[1]/div[2]/video[1]
+        # TODO: keep clearing cookies when making request to cdn link to fetch direct download link.
+        anim_webdriver.get(player_cdn_link)
+        print(f'Scraping {anim_webdriver.title}')
 
-def xtract_player_selenium(player_cdn_link, anim_webdriver):
-    """
-    returns a direct download video from a given cdn link
-    :param player_cdn_link: single cdn link.
-    :param anim_webdriver: expects a webDriver for selenium
-    :return: single direct download link.
-    """
-    # Extract this element 'src' after clicking on the video player
-    # //body/div[1]/div[1]/div[1]/div[2]/video[1]
-    # TODO: keep clearing cookies when making request to cdn link to fetch direct download link.
-    anim_webdriver.get(player_cdn_link)
-    print(f'Scraping {anim_webdriver.title}')
+        # Play the player
+        anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
+                                             '2]/div[1]').click()
+        # Ad skipper
+        # try:
+        #     sleep(5)
+        #     # Switch to ad iframe
+        #     wait(anim_webdriver, 10).until(
+        #         EC.frame_to_be_available_and_switch_to_it(anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div['
+        #                                                                                        '1]/div[2]/iframe[1]')))
+        #
+        #     print("DEBUG: Switched to ad iframe ...")
+        #     # Find the ad skip button
+        #     # TODO: IMP: Use webdriver wait and EC to find and locate the element
+        #     wait(anim_webdriver, 10).until(EC.element_to_be_clickable(
+        #         (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
+        #
+        #     # anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
+        #     print('DEBUG: Ad Skipped!')
+        #
+        # except Exception as e:
+        #   # TODO: In production if failed to retrieve a episode link then just return "Try again" message and proceed
+        #     #  with collected links.
+        #     print(e)
+        #     print("Failed to Skip Ad, possible errors: Can't find the target element or Timeout Exception")
+        #     # TODO: refactor ad skipper and handle for situation when ads are not skipped.
+        #     # anim_webdriver.close()
+        # else:
+        #     # Switch back to content
+        #     anim_webdriver.switch_to.default_content()
+        #     print('DEBUG: Switched to default content ...')
+        #     anim_webdriver.delete_all_cookies()
+        #     print('All cookies deleted ...')
 
-    # Play the player
-    anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
-                                         '2]/div[1]').click()
-    # Ad skipper
-    # try:
-    #     sleep(5)
-    #     # Switch to ad iframe
-    #     wait(anim_webdriver, 10).until(
-    #         EC.frame_to_be_available_and_switch_to_it(anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div['
-    #                                                                                        '1]/div[2]/iframe[1]')))
-    #
-    #     print("DEBUG: Switched to ad iframe ...")
-    #     # Find the ad skip button
-    #     # TODO: IMP: Use webdriver wait and EC to find and locate the element
-    #     wait(anim_webdriver, 10).until(EC.element_to_be_clickable(
-    #         (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
-    #
-    #     # anim_webdriver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
-    #     print('DEBUG: Ad Skipped!')
-    #
-    # except Exception as e:
-    #     # TODO: In production if failed to retrieve a episode link then just return "Try again" message and proceed
-    #     #  with collected links.
-    #     print(e)
-    #     print("Failed to Skip Ad, possible errors: Can't find the target element or Timeout Exception")
-    #     # TODO: refactor ad skipper and handle for situation when ads are not skipped.
-    #     # anim_webdriver.close()
-    # else:
-    #     # Switch back to content
-    #     anim_webdriver.switch_to.default_content()
-    #     print('DEBUG: Switched to default content ...')
-    #     anim_webdriver.delete_all_cookies()
-    #     print('All cookies deleted ...')
+        vid_dwn_element = anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
+        vid_dwn_link = vid_dwn_element.get_attribute('src')
 
-    vid_dwn_element = anim_webdriver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
-    vid_dwn_link = vid_dwn_element.get_attribute('src')
-
-    print('Clearing cookies ...')
-
-    print(f'Done {anim_webdriver.title}')
-    return vid_dwn_link
+        print(f'Done {anim_webdriver.title}')
+        return vid_dwn_link
 
 
 # TODO: VAR: anime_page_url
@@ -186,7 +182,7 @@ print(f'Xtract all episodes Benchmark: {all_epi_toc - all_epi_tic:0.3f}')
 vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
 
 dwn_epi_tic = perf_counter()
-dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
+dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links[:3])
 dwn_epi_toc = perf_counter()
 
 print(f'Xtract direct download links Benchmark: {dwn_epi_toc - dwn_epi_tic:0.3f}')
