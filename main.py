@@ -6,7 +6,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as wait
 from selenium.webdriver.support import expected_conditions as EC
-from time import sleep, perf_counter
+from time import sleep
 import re
 from webdrivermanager import ChromeDriverManager
 
@@ -17,10 +17,7 @@ chia_anime_url = 'http://www.chia-anime.me/'
 
 
 # ChromeDriverManager().download_and_install()
-# TODO: make this user chooseable option after updating chrome.
-
-
-# TODO: REMOVE perf_counter in production.
+# TODO: make this class property with user option to download and install webdriver.
 
 
 class ChiaAnimeSpider:
@@ -69,8 +66,8 @@ class ChiaAnimeSpider:
             sub_page_links.insert(0, link_soup['href'])
 
         # TODO: Delete this in production.
-        for episode, link in enumerate(sub_page_links, 1):
-            print(f'Episode:{episode} and link:{link}')
+        # for episode, link in enumerate(sub_page_links, 1):
+        #     print(f'Episode:{episode} and link:{link}')
 
         return sub_page_links
 
@@ -163,7 +160,37 @@ class ChiaAnimeSpider:
         vid_dwn_link = vid_dwn_element.get_attribute('src')
 
         print(f'Done {anim_webdriver.title}')
-        return vid_dwn_link
+        return vid_dwn_link, anim_webdriver.title
+
+    @staticmethod
+    def search_chia(anime):
+        """
+        Returns the anime search results for the *anime*, which contains anime links.
+        :param anime: str , anime to be searched.
+        :return: list of dicts containing anime metadata.
+        """
+        base_url = f'http://www.chia-anime.me/mysearch.php?nocache&s=&search={anime}'
+
+        search_response = requests.get(base_url)
+        search_soup = BeautifulSoup(search_response.text, 'html.parser')
+        div_soup = search_soup.select('div[style="margin-left: 50px !important;padding-top:-10px !important;"]')
+
+        anime_results = []
+
+        # Extracts the metadata from each individual anime and stores them as dict in the list.
+        for serial_no, meta_anime in enumerate(div_soup, start=1):
+            link = meta_anime.a['href']
+            title = meta_anime.a.string
+
+            # next sibling after 'a' tag is '\n', episode div appears after '\n'
+            temp_episode_element = meta_anime.a.next_sibling.next_sibling
+            episode = temp_episode_element.string
+
+            # next sibling after 'a' tag is '\n', year div appears after '\n'
+            year = temp_episode_element.next_sibling.next_sibling.string
+            anime_results.append({'id': serial_no, 'link': link, 'title': title, 'episodes': episode, 'year': year})
+
+        return anime_results
 
 
 # TODO: VAR: anime_page_url
@@ -171,20 +198,20 @@ arg_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigous
                      '-tensei' \
                      '-shite-shison-tachi-no-gakkou-e/ '
 
-testSpider = ChiaAnimeSpider(arg_anime_page_url)
+# testSpider = ChiaAnimeSpider(arg_anime_page_url)
+#
+# subpage_links = testSpider.xtract_all_episodes_subpage_links()
+# # TODO: VAR: start and end for subpage_links to slice the list
+#
+# vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links[:2])
+#
+# dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
+#
+# # TODO: use dicts instead of list, helpful to rename the download file.
+# print(dwn_links)
 
-all_epi_tic = perf_counter()
-subpage_links = testSpider.xtract_all_episodes_subpage_links()
-# TODO: VAR: start and end for subpage_links to slice the list
-all_epi_toc = perf_counter()
+# TODO: DEBUG Testing Anime Search.
+search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
 
-print(f'Xtract all episodes Benchmark: {all_epi_toc - all_epi_tic:0.3f}')
-vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
-
-dwn_epi_tic = perf_counter()
-dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links[:3])
-dwn_epi_toc = perf_counter()
-
-print(f'Xtract direct download links Benchmark: {dwn_epi_toc - dwn_epi_tic:0.3f}')
-# TODO: use dicts instead of list, helpful to rename the download file.
-print(dwn_links)
+for i in search_res:
+    print(i)
