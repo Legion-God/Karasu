@@ -1,4 +1,5 @@
 msedgedriver.exe
+*.mp4
 .idea
 __pycache__/
 *.py[cod]
