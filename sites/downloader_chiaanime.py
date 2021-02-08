@@ -22,13 +22,19 @@ def downloader(tuple_anime_download):
     print(f'Starting Download of {filename}')
     print(f'Total Size {size(total_size)}')
 
+    # TODO: REMOVE: hacky way to avoid adding video to vcs.
+    filename = '../../' + filename
+
     filename += '.mp4'
     chunk_size = 1024
     num_bars = int(total_size)
 
+    # Shows the episode number that is downloading
+    desc = ChiaAnimeSpider.find_epi_num_in_title(filename)
+    desc = 'Episode ' + desc + ' '
     # Tqdm is updating manually, coz originally it won't show correct units.
     with open(filename, 'wb') as f, tqdm(total=num_bars,
-                                         unit='B', unit_scale=1, unit_divisor=1024, leave=True) as pbar:
+                                         unit='B', unit_scale=1, unit_divisor=1024, leave=True, desc=desc) as pbar:
         for chunk in episode_response.iter_content(chunk_size=chunk_size):
             if chunk:
                 dwn_size = f.write(chunk)

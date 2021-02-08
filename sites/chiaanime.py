@@ -192,7 +192,7 @@ class ChiaAnimeSpider:
         anime_results = []
 
         # Extracts the metadata from each individual anime and stores them as dict in the list.
-        for serial_no, meta_anime in enumerate(div_soup, start=1):
+        for meta_anime in div_soup:
             link = meta_anime.a['href']
             title = meta_anime.a.string
 
@@ -202,7 +202,7 @@ class ChiaAnimeSpider:
 
             # next sibling after 'a' tag is '\n', year div appears after '\n'
             year = temp_episode_element.next_sibling.next_sibling.string
-            anime_results.append({'id': serial_no, 'link': link, 'title': title, 'episodes': episode, 'year': year})
+            anime_results.append({'link': link, 'title': title, 'episodes': episode, 'year': year})
 
         return anime_results
 
