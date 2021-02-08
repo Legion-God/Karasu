@@ -42,7 +42,7 @@ def batch_download(start_episode, end_episode, anime_url):
     Slices the episodic subpage links and downloads the videos in batch
     :param start_episode: int: start episode from 1 (inclusive)
     :param end_episode: int: ending episode (inclusive)
-    :param anime_url: str: anime page url link.
+    :param anime_url: str: anime subpage url link.
     :return:
     """
 
@@ -57,6 +57,16 @@ def batch_download(start_episode, end_episode, anime_url):
         downloader(tuple_anime_download=tuple_anime)
 
     return anime_cdn_links
+
+
+def single_download(episode, anime_url):
+    """
+    Wrapper around the batch downloader for downloading single episode.
+    :param episode: int: episode number.
+    :param anime_url: str: anime subpage url link
+    :return:
+    """
+    batch_download(start_episode=episode, end_episode=episode, anime_url=anime_url)
 
 
 # TODO: testing delete this in prod
