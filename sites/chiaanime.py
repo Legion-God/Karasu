@@ -36,7 +36,7 @@ class ChiaAnimeSpider:
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
-    def anime_supermeta_data(anime_url):
+    def chia_anime_supermeta_data(anime_url):
         """
         Extracts the anime total episode and genres and returns them as dict.
         :return: anime super meta data dict.
@@ -207,7 +207,7 @@ class ChiaAnimeSpider:
         return vid_dwn_link, vid_title
 
     @staticmethod
-    def search_chia(anime):
+    def chia_search(anime):
         """
         Returns the anime search results for the *anime*, which contains anime links.
         :param anime: str , anime to be searched.
@@ -260,4 +260,4 @@ if __name__ == '__main__':
     # # TODO: DEBUG Testing Anime Search.
     # search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
 
-    print(ChiaAnimeSpider.anime_supermeta_data(arg_anime_page_url))
+    print(ChiaAnimeSpider.chia_anime_supermeta_data(arg_anime_page_url))

@@ -15,9 +15,10 @@ class GogoAnimeSpider:
 
     def __init__(self, anime_page_url):
         self.anime_page_url = anime_page_url
+    # TODO: think about refactoring the static methods to normal class methods
 
     @staticmethod
-    def search_gogo(anime):
+    def gogo_search(anime):
         """
         Returns the anime search results for the *anime*, with metadata.
         :param anime: str: anime to be searched
@@ -45,6 +46,28 @@ class GogoAnimeSpider:
 
         return anime_results
 
+    @staticmethod
+    def gogo_anime_supermeta_data(anime_url):
+        """
+        returns the meta data about anime
+        :param anime_url: str: anime page url
+        :return: dict containing meta data
+        """
+        resp = requests.get(anime_url)
+        soup = BeautifulSoup(resp.text, 'html.parser')
+        div_soup = soup.find('div', class_='anime_info_body_bg')
+
+        title = div_soup.h1.get_text(strip=True)
+        meta_list = div_soup.find_all('p', class_='type')
+        season_type = meta_list[0].get_text(strip=True)
+        plot = meta_list[1].get_text(strip=True)
+        genres = meta_list[2].get_text(strip=True)
+        status = meta_list[4].get_text(strip=True)
+
+        return {'title': title, 'season_type': season_type,
+                'plot': plot, 'genres': genres, 'status': status}
+
 
 if __name__ == '__main__':
-    GogoAnimeSpider.search_gogo('Naruto')
+    gogo_anime_url = GogoAnimeSpider.gogo_search('Naruto')[0]['link']
+    print(GogoAnimeSpider.gogo_anime_supermeta_data(gogo_anime_url))
