@@ -36,6 +36,36 @@ class ChiaAnimeSpider:
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
+    def anime_supermeta_data(anime_url):
+        """
+        Extracts the anime total episode and genres and returns them as dict.
+        :return: anime super meta data dict.
+        """
+        anime_page_response = requests.get(anime_url).text
+        soup = BeautifulSoup(anime_page_response, 'html.parser')
+        div_soup = soup.find_all('blockquote')
+        div_soup = div_soup[:-1]
+
+        title_list, meta_list = div_soup
+        title_list = title_list.contents[1::2]
+        meta_list = meta_list.contents[1::2]
+
+        # Title data
+        english_title = title_list[0].get_text(strip=True)
+        alter_title = title_list[1].get_text(strip=True)
+
+        # Meta data
+        total_episodes = meta_list[1].get_text(strip=True)
+        status = meta_list[2].get_text(strip=True)
+        aired = meta_list[3].get_text(strip=True)
+        genres = meta_list[5].get_text(strip=True)
+        rating = meta_list[7].get_text(strip=True)
+
+        return {'english_title': english_title, 'alter_title': alter_title,
+                'total_episodes': total_episodes, 'status': status, 'aired': aired,
+                'genres': genres, 'rating': rating}
+
+    @staticmethod
     def find_epi_num_in_title(page_title):
         """
         Helper function to extract the episode number from the page title using regex and returns epi_number
@@ -210,26 +240,24 @@ class ChiaAnimeSpider:
 # Testing
 
 if __name__ == '__main__':
-
     # TODO: VAR: anime_page_url
     arg_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
                          '-tensei' \
                          '-shite-shison-tachi-no-gakkou-e/ '
 
-    testSpider = ChiaAnimeSpider(arg_anime_page_url)
+    # testSpider = ChiaAnimeSpider(arg_anime_page_url)
 
-    subpage_links = testSpider.xtract_all_episodes_subpage_links()
-    # TODO: VAR: start and end for subpage_links to slice the list
+    # subpage_links = testSpider.xtract_all_episodes_subpage_links()
+    # # TODO: VAR: start and end for subpage_links to slice the list
+    #
+    # vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links[:2])
+    #
+    # dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
+    #
+    # # TODO: use dicts instead of list, helpful to rename the download file.
+    # print(dwn_links)
+    #
+    # # TODO: DEBUG Testing Anime Search.
+    # search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
 
-    vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links[:2])
-
-    dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
-
-    # TODO: use dicts instead of list, helpful to rename the download file.
-    print(dwn_links)
-
-    # TODO: DEBUG Testing Anime Search.
-    search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
-
-    for i in search_res:
-        print(i)
+    print(ChiaAnimeSpider.anime_supermeta_data(arg_anime_page_url))

@@ -11,11 +11,18 @@ class GogoAnimeSpider:
     """
     Handles searching and link extraction for Gogoanime.
     """
-
     base_url = 'https://gogoanime.sh/'
+
+    def __init__(self, anime_page_url):
+        self.anime_page_url = anime_page_url
 
     @staticmethod
     def search_gogo(anime):
+        """
+        Returns the anime search results for the *anime*, with metadata.
+        :param anime: str: anime to be searched
+        :return: list of dicts containing anime metadata.
+        """
         url = f'https://gogoanime.sh//search.html?keyword={anime}'
         search_resp = requests.get(url)
         soup = BeautifulSoup(search_resp.text, 'html.parser')
