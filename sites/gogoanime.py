@@ -13,8 +13,6 @@ class GogoAnimeSpider:
     """
     base_url = 'https://gogoanime.sh/'
 
-    def __init__(self, anime_page_url):
-        self.anime_page_url = anime_page_url
     # TODO: think about refactoring the static methods to normal class methods
 
     @staticmethod
@@ -41,7 +39,7 @@ class GogoAnimeSpider:
             title = item.contents[0]['title']
             year = year_item.get_text(strip=True)
             # TODO: remove this in production
-            print(f'Title: {title} Link: {link} Year: {year}')
+            # print(f'Title: {title} Link: {link} Year: {year}')
             anime_results.append({'link': link, 'title': title, 'year': year})
 
         return anime_results
@@ -67,7 +65,19 @@ class GogoAnimeSpider:
         return {'title': title, 'season_type': season_type,
                 'plot': plot, 'genres': genres, 'status': status}
 
+    @staticmethod
+    def gogo_xtract_all_episodes_subpage_links(anime_url):
+        """
+        Extracts all the subpage episode links
+        :param anime_url: str: anime page url, extracted from search function
+        :return: list of str: list of subpage urls, which points to video player links
+        """
+        sub_response = requests.get(anime_url)
+        soup = BeautifulSoup(sub_response.text, 'html.parser')
+        ul_soup = soup.find('ul', id='episode_page')
+        print(ul_soup)
+
 
 if __name__ == '__main__':
     gogo_anime_url = GogoAnimeSpider.gogo_search('Naruto')[0]['link']
-    print(GogoAnimeSpider.gogo_anime_supermeta_data(gogo_anime_url))
+    GogoAnimeSpider.gogo_xtract_all_episodes_subpage_links(gogo_anime_url)

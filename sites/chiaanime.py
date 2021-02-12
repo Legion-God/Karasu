@@ -17,7 +17,7 @@ chia_anime_url = 'http://www.chia-anime.me/'
 
 # ChromeDriverManager().download_and_install()
 # TODO: make this class property with user option to download and install webdriver.
-
+# TODO: refactor the class to represent the anime
 
 class ChiaAnimeSpider:
     """
@@ -32,7 +32,8 @@ class ChiaAnimeSpider:
 
         self.anime_page_url = chia_anime_page_url
         options = Options()
-        options.add_extension('../ublock.crx')
+        # TODO: delete ad blocker extension
+        options.headless = True
         self.driver = webdriver.Chrome(options=options)
 
     @staticmethod
@@ -75,7 +76,7 @@ class ChiaAnimeSpider:
         epi_number_regex = re.compile('Episode ([0-9]+)')
         return epi_number_regex.findall(page_title)[0]
 
-    def xtract_all_episodes_subpage_links(self):
+    def chia_xtract_all_episodes_subpage_links(self):
         """
         Extracts ALL the episode SUBPAGE links from the anime page and stores them in list.
         :return: list of episode page links
@@ -144,34 +145,46 @@ class ChiaAnimeSpider:
         :param player_cdn_link: single cdn link.
         :return: tuple with download link and file name for the video file.
         """
-        vid_dwn_link = None
-        # Stores the download link
-
-        vid_title = None
 
         # Extract this element 'src' after clicking on the video player
         # //body/div[1]/div[1]/div[1]/div[2]/video[1]
         # TODO: keep clearing cookies when making request to cdn link to fetch direct download link.
         self.driver.get(player_cdn_link)
-        print(f'Scraping {self.driver.title}')
+        vid_title = self.driver.title
+        print(f'Scraping {vid_title}')
+
+        # TODO: testing a better way
+        js_anime_360 = 'return se2'
+        js_anime_720 = 'return se'
+        anime_source_360 = self.driver.execute_script(js_anime_360)
+        anime_source_720 = self.driver.execute_script(js_anime_720)
+
+        anime_source_360 = anime_source_360.replace('\x00', '')
+        anime_source_720 = anime_source_720.replace('\x00', '')
+
+        vid_dwn_link = {'360': anime_source_360, '720': anime_source_720}
+
+        # TODO: extension ad skipper Deprecated
         # Play the player
-        try:
-            self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
-                                              '2]/div[1]').click()
-        except Exception as e:
-            print("Couldn't play the video, Try again ...")
-            print(e)
-            self.driver.close()
-        else:
-            try:
-                vid_dwn_element = self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
-                vid_dwn_link = vid_dwn_element.get_attribute('src')
-                vid_title = self.driver.title
-            except Exception as e:
-                print("Couldn't locate the video source, Try again ...")
-                print(e)
-            finally:
-                self.driver.close()
+        # try:
+        #     self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
+        #                                       '2]/div[1]').click()
+        # except Exception as e:
+        #     print("Couldn't play the video, Try again ...")
+        #     print(e)
+        #     self.driver.close()
+        # else:
+        #     try:
+        #         vid_dwn_element = self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
+        #         vid_dwn_link = vid_dwn_element.get_attribute('src')
+        #         vid_title = self.driver.title
+        #     except Exception as e:
+        #         print("Couldn't locate the video source, Try again ...")
+        #         print(e)
+        #         self.driver.close()
+
+        # TODO:manual ad skipper Deprecated
+
         # Ad skipper
         # try:
         #     sleep(5)
@@ -245,19 +258,19 @@ if __name__ == '__main__':
                          '-tensei' \
                          '-shite-shison-tachi-no-gakkou-e/ '
 
-    # testSpider = ChiaAnimeSpider(arg_anime_page_url)
+    testSpider = ChiaAnimeSpider(arg_anime_page_url)
 
-    # subpage_links = testSpider.xtract_all_episodes_subpage_links()
-    # # TODO: VAR: start and end for subpage_links to slice the list
-    #
-    # vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links[:2])
-    #
-    # dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links)
-    #
-    # # TODO: use dicts instead of list, helpful to rename the download file.
-    # print(dwn_links)
+    subpage_links = testSpider.chia_xtract_all_episodes_subpage_links()
+    # TODO: VAR: start and end for subpage_links to slice the list
+
+    vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
+
+    dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links[:2])
+
+    # TODO: use dicts instead of list, helpful to rename the download file.
+    print(dwn_links)
     #
     # # TODO: DEBUG Testing Anime Search.
     # search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
 
-    print(ChiaAnimeSpider.chia_anime_supermeta_data(arg_anime_page_url))
+    # print(ChiaAnimeSpider.chia_anime_supermeta_data(arg_anime_page_url))

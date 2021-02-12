@@ -51,9 +51,9 @@ def batch_download(start_episode, end_episode, anime_url):
     :param anime_url: str: anime subpage url link.
     :return:
     """
-
+    # TODO: think about extracting functions as params, pass the params to the function to make usable for other sites.
     anime_obj = ChiaAnimeSpider(anime_url)
-    anime_epi_subpage_links = anime_obj.xtract_all_episodes_subpage_links()
+    anime_epi_subpage_links = anime_obj.chia_xtract_all_episodes_subpage_links()
 
     sliced_subpage_links = anime_epi_subpage_links[start_episode - 1:end_episode]
     anime_cdn_links = anime_obj.xtract_video_links(epi_subpage_links=sliced_subpage_links)
