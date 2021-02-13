@@ -74,8 +74,28 @@ class GogoAnimeSpider:
         """
         sub_response = requests.get(anime_url)
         soup = BeautifulSoup(sub_response.text, 'html.parser')
-        ul_soup = soup.find('ul', id='episode_page')
-        print(ul_soup)
+
+        # Extracts the first and last episode number
+        episode_range_soup = soup.find('ul', id='episode_page').contents[1::2]
+
+        ep_start = episode_range_soup[0].a['ep_start']
+        ep_end = episode_range_soup[-1].a['ep_end']
+
+        anime_id = soup.select('input#movie_id')[0]['value']
+        default_ep = soup.select('input#default_ep')[0]['value']
+        alias = soup.select('input#alias_anime')[0]['value']
+
+        load_episode_list_url = f'https://ajax.gogocdn.net/ajax/load-list-episode?ep_start={ep_start}&ep_end={ep_end}' \
+                                f'&id={anime_id}&default_ep={default_ep}&alias={alias}'
+
+        episode_list_response = requests.get(load_episode_list_url)
+        list_soup = BeautifulSoup(episode_list_response.text, 'html.parser')
+        episode_list = list_soup.find('ul', id='episode_related')
+        episode_list = episode_list.find_all('a')
+
+        episode_list = [GogoAnimeSpider.base_url + episode_item['href'].lstrip()
+                        for episode_item in reversed(episode_list)]
+        print(episode_list)
 
 
 if __name__ == '__main__':

@@ -2,10 +2,6 @@ from selenium import webdriver
 import requests
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait as wait
-from selenium.webdriver.support import expected_conditions as EC
-from time import sleep
 import re
 from webdrivermanager import ChromeDriverManager
 
@@ -32,7 +28,6 @@ class ChiaAnimeSpider:
 
         self.anime_page_url = chia_anime_page_url
         options = Options()
-        # TODO: delete ad blocker extension
         options.headless = True
         self.driver = webdriver.Chrome(options=options)
 
@@ -90,15 +85,11 @@ class ChiaAnimeSpider:
         div_sliced_post_soup = div_posts_soup[1:]
 
         # Store all the subpage episode links.
-        sub_page_links = []
-
-        for div_soup in div_sliced_post_soup:
-            link_soup = div_soup.find('a')
-            sub_page_links.insert(0, link_soup['href'])
+        sub_page_links = [div_soup.a['href'] for div_soup in reversed(div_sliced_post_soup)]
 
         # TODO: Delete this in production.
         # for episode, link in enumerate(sub_page_links, 1):
-        #     print(f'Episode:{episode} and link:{link}')
+        #     print(f'Episode:{episode} link:{link}')
 
         return sub_page_links
 
@@ -130,10 +121,8 @@ class ChiaAnimeSpider:
         :param epi_cdn_links: pass the list of cdn_links extracted from the xtract_video_link()
         :return: returns the list of direct download video links
         """
-        direct_dwnload_links = []
 
-        for episode in epi_cdn_links:
-            direct_dwnload_links.append(self.xtract_player_selenium(episode))
+        direct_dwnload_links = [self.xtract_player_selenium(episode) for episode in epi_cdn_links]
 
         # Close the browser after extracting all the direct dwn links.
         self.driver.quit()
@@ -163,58 +152,6 @@ class ChiaAnimeSpider:
         anime_source_720 = anime_source_720.replace('\x00', '')
 
         vid_dwn_link = {'360': anime_source_360, '720': anime_source_720}
-
-        # TODO: extension ad skipper Deprecated
-        # Play the player
-        # try:
-        #     self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[9]/div[1]/div[1]/div[1]/div['
-        #                                       '2]/div[1]').click()
-        # except Exception as e:
-        #     print("Couldn't play the video, Try again ...")
-        #     print(e)
-        #     self.driver.close()
-        # else:
-        #     try:
-        #         vid_dwn_element = self.driver.find_element_by_xpath('//body/div[1]/div[1]/div[1]/div[2]/video[1]')
-        #         vid_dwn_link = vid_dwn_element.get_attribute('src')
-        #         vid_title = self.driver.title
-        #     except Exception as e:
-        #         print("Couldn't locate the video source, Try again ...")
-        #         print(e)
-        #         self.driver.close()
-
-        # TODO:manual ad skipper Deprecated
-
-        # Ad skipper
-        # try:
-        #     sleep(5)
-        #     # Switch to ad iframe
-        #     wait(self.driver, 10).until(
-        #         EC.frame_to_be_available_and_switch_to_it(self.driver.find_element_by_xpath('//body/div[1]/div[1]/div['
-        #                                                                                        '1]/div[2]/iframe[1]')))
-        #
-        #     print("DEBUG: Switched to ad iframe ...")
-        #     # Find the ad skip button
-        #     # TODO: IMP: Use webdriver wait and EC to find and locate the element
-        #     wait(self.driver, 10).until(EC.element_to_be_clickable(
-        #         (By.XPATH, '/html[1]/body[1]/div[1]/div[1]/a[1]'))).click()
-        #
-        #     # self.driver.find_element_by_xpath('/html[1]/body[1]/div[1]/div[1]/a[1]').click()
-        #     print('DEBUG: Ad Skipped!')
-        #
-        # except Exception as e:
-        #   # TODO: In production if failed to retrieve a episode link then just return "Try again" message and proceed
-        #     #  with collected links.
-        #     print(e)
-        #     print("Failed to Skip Ad, possible errors: Can't find the target element or Timeout Exception")
-        #     # TODO: refactor ad skipper and handle for situation when ads are not skipped.
-        #     # self.driver.close()
-        # else:
-        #     # Switch back to content
-        #     self.driver.switch_to.default_content()
-        #     print('DEBUG: Switched to default content ...')
-        #     self.driver.delete_all_cookies()
-        #     print('All cookies deleted ...')
 
         print(f'Done {vid_title}')
         return vid_dwn_link, vid_title
