@@ -14,6 +14,7 @@ chia_anime_url = 'http://www.chia-anime.me/'
 # ChromeDriverManager().download_and_install()
 # TODO: make this class property with user option to download and install webdriver.
 # TODO: refactor the class to represent the anime
+# TODO: handle Exceptions for requests.
 
 class ChiaAnimeSpider:
     """
@@ -94,16 +95,16 @@ class ChiaAnimeSpider:
         return sub_page_links
 
     @staticmethod
-    def xtract_video_links(epi_subpage_links):
+    def xtract_video_cdn_links(epi_subpage_urls):
         """
         Extracts cdn links from the list slice of subpage links.
-        :param epi_subpage_links: slice of list of episode page links.
+        :param epi_subpage_urls: slice of list of episode page links.
         :return: returns a list of downloadable video links.
         """
 
         cdn_links = []
 
-        for sublink in epi_subpage_links:
+        for sublink in epi_subpage_urls:
             subpage_response = requests.get(sublink).text
             subpage_soup = BeautifulSoup(subpage_response, 'html.parser')
 
@@ -115,34 +116,32 @@ class ChiaAnimeSpider:
 
         return cdn_links
 
-    def xtract_dwnload_links(self, epi_cdn_links):
+    def xtract_dwnload_links(self, epi_cdn_urls):
         """
         Creates the list of extracted direct download video links
-        :param epi_cdn_links: pass the list of cdn_links extracted from the xtract_video_link()
+        :param epi_cdn_urls: pass the list of cdn_links extracted from the xtract_video_link()
         :return: returns the list of direct download video links
         """
 
-        direct_dwnload_links = [self.xtract_player_selenium(episode) for episode in epi_cdn_links]
+        direct_dwnload_links = [self.xtract_direct_dwn_link_selenium(episode) for episode in epi_cdn_urls]
 
         # Close the browser after extracting all the direct dwn links.
         self.driver.quit()
         return direct_dwnload_links
 
-    def xtract_player_selenium(self, player_cdn_link):
+    def xtract_direct_dwn_link_selenium(self, player_cdn_url):
         """
         returns a direct download video from a given cdn link
-        :param player_cdn_link: single cdn link.
+        :param player_cdn_url: single cdn link.
         :return: tuple with download link and file name for the video file.
         """
 
         # Extract this element 'src' after clicking on the video player
         # //body/div[1]/div[1]/div[1]/div[2]/video[1]
-        # TODO: keep clearing cookies when making request to cdn link to fetch direct download link.
-        self.driver.get(player_cdn_link)
+        self.driver.get(player_cdn_url)
         vid_title = self.driver.title
         print(f'Scraping {vid_title}')
 
-        # TODO: testing a better way
         js_anime_360 = 'return se2'
         js_anime_720 = 'return se'
         anime_source_360 = self.driver.execute_script(js_anime_360)
@@ -191,23 +190,22 @@ class ChiaAnimeSpider:
 
 if __name__ == '__main__':
     # TODO: VAR: anime_page_url
-    arg_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
+    arg_anime_page_link = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
                          '-tensei' \
                          '-shite-shison-tachi-no-gakkou-e/ '
 
-    testSpider = ChiaAnimeSpider(arg_anime_page_url)
+    testSpider = ChiaAnimeSpider(arg_anime_page_link)
 
     subpage_links = testSpider.chia_xtract_all_episodes_subpage_links()
     # TODO: VAR: start and end for subpage_links to slice the list
 
-    vid_cdn_links = testSpider.xtract_video_links(epi_subpage_links=subpage_links)
+    vid_cdn_links = testSpider.xtract_video_cdn_links(epi_subpage_urls=subpage_links)
 
     dwn_links = testSpider.xtract_dwnload_links(vid_cdn_links[:2])
 
     # TODO: use dicts instead of list, helpful to rename the download file.
     print(dwn_links)
     #
-    # # TODO: DEBUG Testing Anime Search.
     # search_res = ChiaAnimeSpider.search_chia('Shingeki no Kyojin')
 
     # print(ChiaAnimeSpider.chia_anime_supermeta_data(arg_anime_page_url))

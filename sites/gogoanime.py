@@ -15,6 +15,9 @@ class GogoAnimeSpider:
 
     # TODO: think about refactoring the static methods to normal class methods
 
+    def __init__(self):
+        ...
+
     @staticmethod
     def gogo_search(anime):
         """
@@ -45,13 +48,13 @@ class GogoAnimeSpider:
         return anime_results
 
     @staticmethod
-    def gogo_anime_supermeta_data(anime_url):
+    def gogo_anime_supermeta_data(anime_page_url):
         """
         returns the meta data about anime
-        :param anime_url: str: anime page url
+        :param anime_page_url: str: anime page url
         :return: dict containing meta data
         """
-        resp = requests.get(anime_url)
+        resp = requests.get(anime_page_url)
         soup = BeautifulSoup(resp.text, 'html.parser')
         div_soup = soup.find('div', class_='anime_info_body_bg')
 
@@ -66,13 +69,13 @@ class GogoAnimeSpider:
                 'plot': plot, 'genres': genres, 'status': status}
 
     @staticmethod
-    def gogo_xtract_all_episodes_subpage_links(anime_url):
+    def gogo_xtract_all_episodes_subpage_links(anime_page_url):
         """
         Extracts all the subpage episode links
-        :param anime_url: str: anime page url, extracted from search function
-        :return: list of str: list of subpage urls, which points to video player links
+        :param anime_page_url: str: anime page url, extracted from search function
+        :return: episode_list: list of str: list of subpage urls, which points to video player links
         """
-        sub_response = requests.get(anime_url)
+        sub_response = requests.get(anime_page_url)
         soup = BeautifulSoup(sub_response.text, 'html.parser')
 
         # Extracts the first and last episode number
@@ -95,9 +98,65 @@ class GogoAnimeSpider:
 
         episode_list = [GogoAnimeSpider.base_url + episode_item['href'].lstrip()
                         for episode_item in reversed(episode_list)]
-        print(episode_list)
+
+        return episode_list
+
+    @staticmethod
+    def gogo_xtract_video_cdn_links(anime_subpage_url):
+        """
+        Extracts the link of download page from anime subpage.
+        :param anime_subpage_url: str: episode sub page link
+        :return: str: episode download page link
+        """
+        sub_page_response = requests.get(anime_subpage_url)
+        sub_page_soup = BeautifulSoup(sub_page_response.text, 'html.parser')
+
+        dwnload_page_link = sub_page_soup.find('li', class_='dowloads').a['href']
+        return dwnload_page_link
+
+    @staticmethod
+    def gogo_xtract_direct_dwn_link(anime_cdn_url):
+        cdn_page_response = requests.get(anime_cdn_url)
+        cdn_soup = BeautifulSoup(cdn_page_response.text, 'html.parser')
+        cdn_soup = cdn_soup.find_all('div', class_='mirror_link')
+        download_urls = cdn_soup[0].find_all('a')
+        alter_download_urls = cdn_soup[1].find_all('a')
+
+        """A short function to clean the video resolution version of first list of download urls."""
+        def clean_quality(quality_name): return quality_name.strip().split()[1][1:]
+
+        # TODO: These download url requires special headers
+        download_urls = [{clean_quality(url_item.get_text()): url_item['href']} for url_item in download_urls]
+
+        """A short function to clean the video resolution of MIRROR download urls."""
+        def clean_mirror(mirror_quality): return ''.join(mirror_quality.split()[1:])
+
+        alter_download_urls = [{clean_mirror(url_item.get_text()): url_item['href']}
+                               for url_item in alter_download_urls]
+
+        def is_valid_url(mirror_url):
+            """
+            A function used for filtering the invalid urls provided by a group of providers.
+            :param mirror_url: str: mirror download url
+            :return:
+            """
+            invalid_providers = ['MixdropSV', 'mp4upload']
+            for mirror_key, mirror_value in mirror_url.items():
+                if mirror_key not in invalid_providers:
+                    return mirror_url
+
+        # Removes invalid providers
+        alter_download_urls = list(filter(is_valid_url, alter_download_urls))
+
+        print(download_urls)
+        for i in alter_download_urls:
+            print(i)
+
+        print(len(alter_download_urls))
 
 
 if __name__ == '__main__':
-    gogo_anime_url = GogoAnimeSpider.gogo_search('Naruto')[0]['link']
-    GogoAnimeSpider.gogo_xtract_all_episodes_subpage_links(gogo_anime_url)
+    gogo_anime_link = GogoAnimeSpider.gogo_search('Dororo')[0]['link']
+    subpage_link = GogoAnimeSpider.gogo_xtract_all_episodes_subpage_links(gogo_anime_link)[8]
+    cdn_page_link = GogoAnimeSpider.gogo_xtract_video_cdn_links(subpage_link)
+    GogoAnimeSpider.gogo_xtract_direct_dwn_link(cdn_page_link)

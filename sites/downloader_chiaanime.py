@@ -56,10 +56,10 @@ def batch_download(start_episode, end_episode, anime_url):
     anime_epi_subpage_links = anime_obj.chia_xtract_all_episodes_subpage_links()
 
     sliced_subpage_links = anime_epi_subpage_links[start_episode - 1:end_episode]
-    anime_cdn_links = anime_obj.xtract_video_links(epi_subpage_links=sliced_subpage_links)
+    anime_cdn_links = anime_obj.xtract_video_cdn_links(epi_subpage_urls=sliced_subpage_links)
 
     for link in anime_cdn_links:
-        tuple_anime = anime_obj.xtract_player_selenium(link)
+        tuple_anime = anime_obj.xtract_direct_dwn_link_selenium(link)
         downloader(tuple_anime_download=tuple_anime)
 
     return anime_cdn_links
