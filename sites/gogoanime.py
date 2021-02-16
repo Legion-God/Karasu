@@ -1,10 +1,123 @@
 import requests
 from bs4 import BeautifulSoup
 import itertools
+import json
 
 '''
 Gogoanime url = "https://gogoanime.sh/"
 '''
+
+"""
+Some utility functions for extracting mirror links from providers.
+"""
+
+
+def stream_sb(provider_url):
+    """
+    Extracts direct download links from indirect video provider links
+    :param provider_url: indirect video provider link.
+    :return: dict: dict multiple quality direct downlaod links.
+    """
+    # FIXME: stream_sb probably uses requests rate limiting, check this later.
+    # base url for the stream_sb video
+    stream_sb_base_url = 'https://streamsb.net/dl?op=download_orig&'
+
+    resp = requests.get(provider_url)
+    soup = BeautifulSoup(resp.text, 'html.parser')
+    table_soup = soup.find_all('td')
+    dwnload_360_soup = table_soup[0].a
+    dwnload_360_info = table_soup[1].get_text(strip=True)
+
+    dwnload_720_soup = table_soup[2].a
+    dwnload_720_info = table_soup[3].get_text(strip=True)
+
+    def xtract_stream_sb_params(string_with_params):
+        """
+        Returns string with params embedded extracted from another string.
+        :param string_with_params: str: a string with params
+        :return: str: a string with params embedded
+        """
+        params = string_with_params.split("'")
+        id_episode = params[1]
+
+        # download normal(mode=n) or high res(mode=h) quality video.
+        quality_episode = params[3]
+        hash_episode = params[5]
+        return f'{stream_sb_base_url}id={id_episode}&mode={quality_episode}&hash={hash_episode}'
+
+    def xtract_stream_direct_dwnload_url(download_page_url):
+        """
+        Extracts direct download link from download page
+        :param download_page_url: str: download page url
+        :return: str: direct download url
+        """
+        dwn_page_resp = requests.get(download_page_url)
+        dwn_page_soup = BeautifulSoup(dwn_page_resp.text, 'html.parser')
+        url = dwn_page_soup.find('div', class_='contentbox').span.a['href']
+        return url
+
+    download_360_url = xtract_stream_direct_dwnload_url(xtract_stream_sb_params(dwnload_360_soup['onclick']))
+    download_720_url = xtract_stream_direct_dwnload_url(xtract_stream_sb_params(dwnload_720_soup['onclick']))
+
+    def is_alive(video_url):
+        """
+        Returns True if a video is alive.
+        :param video_url: video url
+        :return: bool:
+        """
+        if requests.head(video_url).headers['Content-Type'] == 'text/html':
+            return False
+        else:
+            return True
+
+    if is_alive(download_360_url):
+        if is_alive(download_720_url):
+            return [{'is_alive': True}, {'360': download_360_url, 'meta_data': dwnload_360_info},
+                    {'720': download_720_url, 'meta_data': dwnload_720_info}]
+        else:
+            return [{'is_alive': True}, {'360': download_360_url, 'meta_data': dwnload_360_info}]
+    else:
+        if is_alive(download_720_url):
+            return [{'is_alive': True}, {'360': download_720_url, 'meta_data': dwnload_720_info}]
+        else:
+            return [{'is_alive': False}]
+
+
+def xtream_cdn(provider_url):
+    """
+    Xtracts direct download link from Xtream video provider
+    :param provider_url: str: takes indirect link to video page
+    :return: returns direct download link
+    """
+
+    def is_down(provider_stream_url):
+        """
+        Checks if the video is been DMCAed.
+        :param provider_stream_url: str: url for indirect video page
+        :return: bool:
+        """
+        down_resp = requests.get(provider_stream_url)
+        down_soup = BeautifulSoup(down_resp.text, 'html.parser')
+        message = down_soup.p.get_text(strip=True)
+
+        if 'DMCA Takedown' in message:
+            return True
+        else:
+            return False
+
+    if is_down(provider_url):
+        print('DMCA Take down :( Try another servers ...')
+        return [{'is_alive': False}]
+    else:
+        split_url = provider_url.split('/f/')
+        post_url = f'{split_url[0]}/api/source/{split_url[1]}'
+
+        xstream_resp = requests.post(post_url).text
+        redirect_urls = json.loads(xstream_resp)['data']
+        direct_urls = [{url_item['label']: requests.get(url_item['file'], stream=True).url}
+                       for url_item in redirect_urls]
+        direct_urls.insert(0, {'is_alive': True})
+        return direct_urls
 
 
 class GogoAnimeSpider:
@@ -14,7 +127,6 @@ class GogoAnimeSpider:
     base_url = 'https://gogoanime.sh/'
 
     # TODO: think about refactoring the static methods to normal class methods
-
     def __init__(self):
         ...
 
@@ -122,14 +234,19 @@ class GogoAnimeSpider:
         download_urls = cdn_soup[0].find_all('a')
         alter_download_urls = cdn_soup[1].find_all('a')
 
+        # TODO: IMP: extract the episode title and save it with return list of results
         """A short function to clean the video resolution version of first list of download urls."""
-        def clean_quality(quality_name): return quality_name.strip().split()[1][1:]
+
+        def clean_quality(quality_name):
+            return quality_name.strip().split()[1][1:]
 
         # TODO: These download url requires special headers
         download_urls = [{clean_quality(url_item.get_text()): url_item['href']} for url_item in download_urls]
 
         """A short function to clean the video resolution of MIRROR download urls."""
-        def clean_mirror(mirror_quality): return ''.join(mirror_quality.split()[1:])
+
+        def clean_mirror(mirror_quality):
+            return ''.join(mirror_quality.split()[1:])
 
         alter_download_urls = [{clean_mirror(url_item.get_text()): url_item['href']}
                                for url_item in alter_download_urls]
@@ -148,15 +265,17 @@ class GogoAnimeSpider:
         # Removes invalid providers
         alter_download_urls = list(filter(is_valid_url, alter_download_urls))
 
-        print(download_urls)
-        for i in alter_download_urls:
-            print(i)
-
-        print(len(alter_download_urls))
+        # TODO: alter_download has indirect download links, convert it to direct links and clean them
+        return {'links': download_urls, 'mirror_links': alter_download_urls}
 
 
 if __name__ == '__main__':
-    gogo_anime_link = GogoAnimeSpider.gogo_search('Dororo')[0]['link']
-    subpage_link = GogoAnimeSpider.gogo_xtract_all_episodes_subpage_links(gogo_anime_link)[8]
-    cdn_page_link = GogoAnimeSpider.gogo_xtract_video_cdn_links(subpage_link)
-    GogoAnimeSpider.gogo_xtract_direct_dwn_link(cdn_page_link)
+    # gogo_anime_link = GogoAnimeSpider.gogo_search('Dororo')[0]['link']
+    # subpage_link = GogoAnimeSpider.gogo_xtract_all_episodes_subpage_links(gogo_anime_link)[8]
+    # cdn_page_link = GogoAnimeSpider.gogo_xtract_video_cdn_links(subpage_link)
+    # download_links = GogoAnimeSpider.gogo_xtract_direct_dwn_link(cdn_page_link)
+    #
+    # print(json.dumps(download_links, indent=4))
+
+    # stream_sb('https://streamsb.net/d/8axfbcx6xaon.html')
+    xtream_cdn('https://fcdn.stream/f/7z9-z5072ox')
