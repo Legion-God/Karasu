@@ -2,14 +2,19 @@ import requests
 from bs4 import BeautifulSoup
 import itertools
 import json
+from collections import namedtuple
 
 '''
-Gogoanime url = "https://gogoanime.sh/"
+Gogoanime url = "https://www2.gogoanime.sh/"
 '''
 
 """
 Some utility functions for extracting mirror links from providers.
 """
+
+
+# TODO: Implement extractor for dood.to provider
+# FIXME: change the dictionary and tuples to namedtuples wherever possible
 
 
 def stream_sb(provider_url):
@@ -265,8 +270,67 @@ class GogoAnimeSpider:
         # Removes invalid providers
         alter_download_urls = list(filter(is_valid_url, alter_download_urls))
 
-        # TODO: alter_download has indirect download links, convert it to direct links and clean them
+        # FIXME: Integrate utility functions for alter_download_urls
         return {'links': download_urls, 'mirror_links': alter_download_urls}
+
+    # TODO: create a namedtuple for categories for recent released.
+    @staticmethod
+    def gogo_recent_released(page_number=1, show_type=1):
+        """
+        Takes a named tuple indicating page number and show_type.
+        :param page_number: int: page number of recent releases
+        :param show_type: int describing type of show ['sub', 'dub', chinese], start_index=1
+        :return: list(namedtuple(['show_title', 'episode', 'link']))
+        """
+
+        # Input validation for the params
+        def recent_released_params_validation(page_val=page_number, type_val=show_type):
+            """
+            Validates if params are correct.
+            :param page_val: int: page number of recent release
+            :param type_val: int: type of show
+            :return: bool: returns true if everything is correct else false.
+            """
+
+            if not 1 <= type_val <= 3:
+                return False
+
+            # Gives the last page number of certain type.
+            val_recent_release_url = f'https://ajax.gogocdn.net/ajax/page-recent-release.html?page=999&type={type_val}'
+            val_resp = requests.get(val_recent_release_url)
+            val_soup = BeautifulSoup(val_resp.text, 'html.parser')
+            val_last_page = val_soup.find('ul', class_='pagination-list').find_all('a')
+            val_last_page = [int(val_page_item.get_text(strip=True)) for val_page_item in val_last_page]
+            val_last_page = val_last_page[-1]
+
+            if 1 <= page_val <= val_last_page:
+                return True
+            else:
+                return False
+
+        if recent_released_params_validation(page_number, show_type):
+            # Input is correct, proceed further
+            recent_release_url = f'https://ajax.gogocdn.net/ajax/page-recent-release.html?page={page_number}' \
+                                 f'&type={show_type}'
+            recent_release_resp = requests.get(recent_release_url)
+            recent_release_soup = BeautifulSoup(recent_release_resp.text, 'html.parser')
+            li_soup = recent_release_soup.find('ul', class_='items').contents
+
+            # CLeans unwanted elements from show lists
+            uncleaned_recent_released_shows = li_soup[1::2]
+
+            Recent = namedtuple('Recent', ['show_name', 'episode', 'link'])
+
+            recent_released_shows = list(map(lambda show: Recent(show_name=show.find('p', class_='name').a.get_text(),
+                                                                 episode=show.find('p', class_='episode').get_text(),
+                                                                 link=GogoAnimeSpider.base_url +
+                                                                 show.find('p', class_='name').a['href']),
+                                             uncleaned_recent_released_shows))
+            return recent_released_shows
+
+        else:
+            print('Incorrect Input ...')
+            # TODO: Write some logic for handling incorrect case.
 
 
 if __name__ == '__main__':
@@ -278,4 +342,7 @@ if __name__ == '__main__':
     # print(json.dumps(download_links, indent=4))
 
     # stream_sb('https://streamsb.net/d/8axfbcx6xaon.html')
-    xtream_cdn('https://fcdn.stream/f/7z9-z5072ox')
+    # xtream_cdn('https://fcdn.stream/f/7z9-z5072ox')
+
+    # TESTING for recent release list
+    GogoAnimeSpider.gogo_recent_released()
