@@ -12,10 +12,10 @@ Gogoanime url = "https://www2.gogoanime.sh/"
 Some utility functions for extracting mirror links from providers.
 """
 
-
+# Try using headers from selenium wire for urls that need special headers.
 # TODO: Implement extractor for dood.to provider
 # FIXME: change the dictionary and tuples to namedtuples wherever possible
-
+# FIXME: refactor the inner functions to remove their params.
 
 def stream_sb(provider_url):
     """
@@ -135,6 +135,7 @@ class GogoAnimeSpider:
     def __init__(self):
         ...
 
+    # FIXME: Handle the case where anime is given correctly or search doesn't return results for ALL sites.
     @staticmethod
     def gogo_search(anime):
         """
