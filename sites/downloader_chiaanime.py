@@ -1,4 +1,5 @@
 from sites.chiaanime import ChiaAnimeSpider
+from sites.chiaanime import find_epi_num_in_title
 from hurry.filesize import size
 import requests
 from tqdm import tqdm
@@ -7,6 +8,11 @@ from tqdm import tqdm
 test_anime_page_url = 'http://www.chia-anime.me/episode/maou-gakuin-no-futekigousha-shijou-saikyou-no-maou-no-shiso' \
                       '-tensei' \
                       '-shite-shison-tachi-no-gakkou-e/ '
+
+# TODO: make this a class and inherit to make different downloader, also extract this to different package.
+
+#  FIXME: refactoring in chia anime direct download link extractor selenium with multiple qualities BROKE the
+#   downloading, process
 
 
 def downloader(tuple_anime_download):
@@ -30,7 +36,7 @@ def downloader(tuple_anime_download):
     num_bars = int(total_size)
 
     # Shows the episode number that is downloading
-    desc = ChiaAnimeSpider.find_epi_num_in_title(filename)
+    desc = find_epi_num_in_title(filename)
     desc = 'Episode ' + desc + ' '
     # Tqdm is updating manually, coz originally it won't show correct units.
     with open(filename, 'wb') as f, tqdm(total=num_bars,

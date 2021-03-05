@@ -137,8 +137,6 @@ class FastAniSpider:
     anime and after printing meta data about anime, show the season information.
     '''
 
-    # FIXME: make anime response a property of the class.
-    # FIXME: make it's inner data also a property of the class.
     @staticmethod
     def fast_ani_anime_metadata(anime_card_response):
         """
@@ -152,7 +150,8 @@ class FastAniSpider:
                         title=anime_card_response['title']['english'],
                         romaji_title=anime_card_response['title']['romaji'])
 
-    def fast_ani_episode_links(self, anime_response, season_num, epi_start, epi_end):
+    @staticmethod
+    def fast_ani_episode_links(anime_response, season_num, epi_start, epi_end):
         """
         Returns a list of namedtuple with episode link and filename for specified params
         :param anime_response: selected anime dict response from list of card items.
@@ -177,5 +176,5 @@ if __name__ == '__main__':
     results = fast_ani.fast_ani_search_results(response)
     # print(results)
     # print(fast_ani.fast_ani_anime_metadata(response['animeData']['cards'][0]))
-    print(fast_ani.fast_ani_episode_links(anime_response=response['animeData']['cards'][0],
-                                          season_num=1, epi_start=0, epi_end=8))
+    print(fast_ani.fast_ani_episode_links(anime_response=response['animeData']['cards'][0], season_num=1, epi_start=0,
+                                          epi_end=8))

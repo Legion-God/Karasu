@@ -25,9 +25,9 @@ def search_theme(anime_name):
     return json.loads(search_results.text)
 
 
-"""
+'''
 A dict of radio stream urls
-"""
+'''
 
 
 def redirect_url(original_url):

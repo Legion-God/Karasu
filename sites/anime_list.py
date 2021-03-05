@@ -7,8 +7,11 @@ Extracts and translates the anime schedule list
 '''
 
 
-# TODO: write documentation for this function.
 def xtractor_list():
+    """
+    Xtracts the anime list schedule and returns the namedtuple
+    :return: Weekday(['day', Show(['show_name', 'episode', 'time'])])
+    """
     schedule_list_url = 'https://animeschedule.net/'
     list_resp = requests.get(schedule_list_url)
     raw_soup = BeautifulSoup(list_resp.text, 'html.parser')
