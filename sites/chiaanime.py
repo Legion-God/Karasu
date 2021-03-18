@@ -196,8 +196,9 @@ class ChiaAnimeSpider:
 
         return anime_results
 
-
+# REVIEW: think of adding delay when scraping for new episodes links
 # Testing
+
 
 if __name__ == '__main__':
     # TODO: VAR: anime_page_url
